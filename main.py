@@ -4,10 +4,94 @@ import pyodbc
 import uuid
 from datetime import datetime
 
-class InsuranceSystemApp:
+class LoginWindow:
     def __init__(self, root):
         self.root = root
-        self.root.title("Insurance System Management")
+        self.root.title("Insurance System - Login")
+        self.root.geometry("400x200")
+        
+        # Database connection
+        self.connection_string = (
+            "Driver={ODBC Driver 17 for SQL Server};"
+            "Server=localhost;"
+            "Database=insuranceSystem;"
+            "UID=sa;"
+            "PWD=1234;"
+            "Encrypt=yes;"
+            "TrustServerCertificate=yes;"
+            "Connection Timeout=30;"
+        )
+        
+        self.conn = None
+        self.cursor = None
+        self.connect_to_db()
+        
+        # Login Form
+        login_frame = ttk.Frame(self.root, padding="20")
+        login_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(login_frame, text="Username:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        self.username_entry = ttk.Entry(login_frame, width=30)
+        self.username_entry.grid(row=0, column=1, padx=5, pady=5)
+        
+        ttk.Label(login_frame, text="Password:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        self.password_entry = ttk.Entry(login_frame, width=30, show="*")
+        self.password_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        button_frame = ttk.Frame(login_frame)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        
+        ttk.Button(button_frame, text="Login", command=self.login).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Exit", command=self.root.destroy).pack(side=tk.LEFT, padx=5)
+        
+        # Focus on username field
+        self.username_entry.focus_set()
+        
+    def connect_to_db(self):
+        try:
+            self.conn = pyodbc.connect(self.connection_string)
+            self.cursor = self.conn.cursor()
+        except Exception as e:
+            messagebox.showerror("Database Connection Error", f"Failed to connect to database:\n{str(e)}")
+            self.root.destroy()
+    
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        
+        if not username or not password:
+            messagebox.showwarning("Validation Error", "Please enter both username and password")
+            return
+        
+        try:
+            # Check credentials in database
+            query = "SELECT Roleuser FROM Users WHERE Username = ?"
+            self.cursor.execute(query, (username,))
+            result = self.cursor.fetchone()
+            
+            if result:
+                role = result[0]
+                # In a real application, you would verify the password properly (hashed, etc.)
+                # For this example, we'll just check if the password is not empty
+                if password:  # Replace with proper password verification
+                    self.root.destroy()
+                    root = tk.Tk()
+                    app = InsuranceSystemApp(root, role)
+                    root.mainloop()
+                else:
+                    messagebox.showerror("Login Failed", "Invalid password")
+            else:
+                messagebox.showerror("Login Failed", "Invalid username")
+                
+        except Exception as e:
+            messagebox.showerror("Database Error", f"Error during login:\n{str(e)}")
+
+
+class InsuranceSystemApp:
+    def __init__(self, root, user_role):
+        self.root = root
+        self.user_role = user_role
+        self.root.title(f"Insurance System Management - {user_role}")
         self.root.geometry("1200x800")
         
         # Database connection
@@ -30,15 +114,26 @@ class InsuranceSystemApp:
         self.notebook = ttk.Notebook(root)
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
-        # Create tabs
-        self.create_client_tab()
-        self.create_employee_tab()
-        self.create_vehicle_tab()
-        self.create_policy_tab()
-        self.create_claim_tab()
-        self.create_payment_tab()
+        # Create tabs based on user role
+        if self.user_role == "Admin":
+            self.create_client_tab()
+            self.create_employee_tab()
+            self.create_vehicle_tab()
+            self.create_policy_tab()
+            self.create_claim_tab()
+            self.create_payment_tab()
         self.create_reports_tab()
         
+        # Add logout button
+        logout_button = ttk.Button(root, text="Logout", command=self.logout)
+        logout_button.pack(side=tk.BOTTOM, pady=10)
+    
+    def logout(self):
+        self.root.destroy()
+        root = tk.Tk()
+        LoginWindow(root)
+        root.mainloop()
+    
     def connect_to_db(self):
         try:
             self.conn = pyodbc.connect(self.connection_string)
@@ -65,7 +160,7 @@ class InsuranceSystemApp:
             messagebox.showerror("Database Error", f"Error executing stored procedure {sp_name}:\n{str(e)}")
             return None
     
-    # Client Tab Methods (already implemented)
+    # Client Tab Methods
     def create_client_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Clients")
@@ -131,6 +226,10 @@ class InsuranceSystemApp:
         self.refresh_clients()
     
     def add_client(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add clients")
+            return
+            
         name = self.client_name_entry.get()
         address = self.client_address_entry.get()
         phone = self.client_phone_entry.get()
@@ -148,6 +247,10 @@ class InsuranceSystemApp:
         self.clear_client_form()
     
     def update_client(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update clients")
+            return
+            
         selected = self.client_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a client to update")
@@ -169,6 +272,10 @@ class InsuranceSystemApp:
         self.refresh_clients()
     
     def delete_client(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete clients")
+            return
+            
         selected = self.client_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a client to delete")
@@ -215,7 +322,7 @@ class InsuranceSystemApp:
         self.client_email_entry.delete(0, tk.END)
         self.client_passport_entry.delete(0, tk.END)
     
-    # Employee Tab Methods (already implemented)
+    # Employee Tab Methods
     def create_employee_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Employees")
@@ -276,6 +383,10 @@ class InsuranceSystemApp:
         self.refresh_employees()
     
     def add_employee(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add employees")
+            return
+            
         name = self.employee_name_entry.get()
         position = self.employee_position_entry.get()
         phone = self.employee_phone_entry.get()
@@ -292,6 +403,10 @@ class InsuranceSystemApp:
         self.clear_employee_form()
     
     def update_employee(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update employees")
+            return
+            
         selected = self.employee_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select an employee to update")
@@ -312,6 +427,10 @@ class InsuranceSystemApp:
         self.refresh_employees()
     
     def delete_employee(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete employees")
+            return
+            
         selected = self.employee_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select an employee to delete")
@@ -433,6 +552,10 @@ class InsuranceSystemApp:
             self.owner_combobox['values'] = client_names
     
     def add_vehicle(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add vehicles")
+            return
+            
         owner = self.owner_combobox.get()
         make = self.vehicle_make_entry.get()
         model = self.vehicle_model_entry.get()
@@ -460,6 +583,10 @@ class InsuranceSystemApp:
         self.clear_vehicle_form()
     
     def update_vehicle(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update vehicles")
+            return
+            
         selected = self.vehicle_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a vehicle to update")
@@ -491,6 +618,10 @@ class InsuranceSystemApp:
         self.refresh_vehicles()
     
     def delete_vehicle(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete vehicles")
+            return
+            
         selected = self.vehicle_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a vehicle to delete")
@@ -649,6 +780,10 @@ class InsuranceSystemApp:
             self.policy_employee_combobox['values'] = employee_names
     
     def add_policy(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add policies")
+            return
+            
         policy_number = self.policy_number_entry.get()
         client = self.policy_client_combobox.get()
         vehicle = self.policy_vehicle_combobox.get()
@@ -691,6 +826,10 @@ class InsuranceSystemApp:
         self.clear_policy_form()
     
     def update_policy(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update policies")
+            return
+            
         selected = self.policy_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a policy to update")
@@ -737,6 +876,10 @@ class InsuranceSystemApp:
         self.refresh_policies()
     
     def delete_policy(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete policies")
+            return
+            
         selected = self.policy_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a policy to delete")
@@ -867,6 +1010,10 @@ class InsuranceSystemApp:
             self.claim_policy_combobox['values'] = policy_numbers
     
     def add_claim(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add claims")
+            return
+            
         policy = self.claim_policy_combobox.get()
         claim_date = self.claim_date_entry.get()
         description = self.claim_desc_entry.get()
@@ -900,6 +1047,10 @@ class InsuranceSystemApp:
         self.clear_claim_form()
     
     def update_claim(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update claims")
+            return
+            
         selected = self.claim_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a claim to update")
@@ -937,6 +1088,10 @@ class InsuranceSystemApp:
         self.refresh_claims()
     
     def delete_claim(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete claims")
+            return
+            
         selected = self.claim_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a claim to delete")
@@ -1056,6 +1211,10 @@ class InsuranceSystemApp:
             self.payment_claim_combobox['values'] = claim_descriptions
     
     def add_payment(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can add payments")
+            return
+            
         claim = self.payment_claim_combobox.get()
         payment_date = self.payment_date_entry.get()
         amount = self.payment_amount_entry.get()
@@ -1087,6 +1246,10 @@ class InsuranceSystemApp:
         self.clear_payment_form()
     
     def update_payment(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can update payments")
+            return
+            
         selected = self.payment_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a payment to update")
@@ -1122,6 +1285,10 @@ class InsuranceSystemApp:
         self.refresh_payments()
     
     def delete_payment(self):
+        if self.user_role != "Admin":
+            messagebox.showwarning("Permission Denied", "Only Admin can delete payments")
+            return
+            
         selected = self.payment_tree.selection()
         if not selected:
             messagebox.showwarning("Selection Error", "Please select a payment to delete")
@@ -1163,7 +1330,7 @@ class InsuranceSystemApp:
         self.payment_amount_entry.delete(0, tk.END)
         self.payment_method_combobox.set('')
     
-    # Reports Tab Methods (already implemented)
+    # Reports Tab Methods
     def create_reports_tab(self):
         tab = ttk.Frame(self.notebook)
         self.notebook.add(tab, text="Reports")
@@ -1208,5 +1375,5 @@ class InsuranceSystemApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = InsuranceSystemApp(root)
+    LoginWindow(root)
     root.mainloop()
