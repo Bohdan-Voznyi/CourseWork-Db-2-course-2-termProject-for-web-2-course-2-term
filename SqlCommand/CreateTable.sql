@@ -114,16 +114,17 @@ GO
 CREATE TABLE Users (
     Id char(36) PRIMARY KEY,
     Username NVARCHAR(100),
-    Roleuser NVARCHAR(50) -- наприклад: 'admin', 'user'
+    Password NVARCHAR(100), -- In a real app, store hashed passwords
+    Roleuser NVARCHAR(50) -- 'admin', 'user'
 );
 
 
 delete from Users
 go
 
-insert into Users(Id,Username,Roleuser)
-values 
-('1','sa','AdminInsurance'),
-('2','AdminInsurance','AdminInsurance'),
-('3','worker','worker')
+INSERT INTO Users(Id, Username, Password, Roleuser)
+VALUES 
+('11111111-1111-1111-1111-111111111111', 'sa', '1234', 'Admin'),
+('22222222-2222-2222-2222-222222222222', 'Admin', 'admin123', 'Admin'),
+('33333333-3333-3333-3333-333333333333', 'worker', 'worker123', 'worker');
 go
