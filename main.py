@@ -4,6 +4,9 @@ import pyodbc
 import uuid
 from datetime import datetime
 from fpdf import FPDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import cm
 
 class LoginWindow:
     def __init__(self, root):
@@ -1409,49 +1412,50 @@ class InsuranceSystemApp:
             self.report_tree.insert("", tk.END, values=item)
 
     def export_to_pdf(self):
-        """Експорт даних з Treeview у PDF"""
         if not self.report_tree.get_children():
-            tk.messagebox.showwarning("Увага", "Немає даних для експорту")
+            messagebox.showwarning("Увага", "Немає даних для експорту")
             return
-        
-        # Створюємо PDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=10)
-        
-        # Заголовок звіту
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(200, 10, txt="Звіт по активним полісам", ln=1, align='C')
-        pdf.set_font("Arial", size=10)
-        pdf.cell(200, 10, txt=f"Згенеровано: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=1)
-        pdf.ln(5)
-        
-        # Отримуємо дані з Treeview
-        columns = self.report_tree["columns"]
-        data = []
-        
-        # Заголовки колонок
-        headers = [self.report_tree.heading(col)["text"] for col in columns]
-        data.append(headers)
-        
-        # Дані з рядків
-        for child in self.report_tree.get_children():
-            data.append(self.report_tree.item(child)["values"])
-        
-        # Визначаємо ширину колонок
-        col_width = 190 / len(columns)
-        
-        # Додаємо таблицю в PDF
-        pdf.set_font("Arial", 'B', 10)
-        for row in data:
-            for item in row:
-                pdf.cell(col_width, 10, str(item), border=1)
-            pdf.ln()
-        
-        # Зберігаємо PDF
+
         filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        pdf.output(filename)
-        tk.messagebox.showinfo("Успіх", f"Звіт збережено у файлі: {filename}")
+
+        c = canvas.Canvas(filename, pagesize=A4)
+        width, height = A4
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(width / 2, height - 2*cm, "Звіт")
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(width / 2, height - 2.7*cm, f"Згенеровано: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        
+        # Початкові координати таблиці
+        x_offset = 2*cm
+        y_offset = height - 4*cm
+        row_height = 1*cm
+
+        columns = self.report_tree["columns"]
+        headers = [self.report_tree.heading(col)["text"] for col in columns]
+
+        col_width = (width - 4*cm) / len(columns)
+
+        # Малюємо заголовки таблиці
+        c.setFont("Helvetica-Bold", 10)
+        for i, header in enumerate(headers):
+            c.drawString(x_offset + i * col_width + 2, y_offset, str(header))
+        y_offset -= row_height
+
+        # Малюємо дані
+        c.setFont("Helvetica", 10)
+        for child in self.report_tree.get_children():
+            values = self.report_tree.item(child)["values"]
+            for i, item in enumerate(values):
+                c.drawString(x_offset + i * col_width + 2, y_offset, str(item))
+            y_offset -= row_height
+            if y_offset < 2*cm:  # Якщо до кінця сторінки, додати нову сторінку
+                c.showPage()
+                c.setFont("Helvetica", 10)
+                y_offset = height - 2*cm
+
+        c.save()
+        messagebox.showinfo("Успіх", f"Звіт збережено у файлі: {filename}")
 
     def clear_report_tree(self):
         """Очищення Treeview"""
