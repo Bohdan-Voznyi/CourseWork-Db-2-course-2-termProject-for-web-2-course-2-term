@@ -11,7 +11,7 @@ from reportlab.lib.units import cm
 class LoginWindow:
     def __init__(self, root):
         self.root = root
-        self.root.title("Insurance System - Login")
+        self.root.title("Insurance System(Старокожко Роман) - Login")
         self.root.geometry("400x200")
         
         # Database connection
