@@ -154,15 +154,15 @@ class InsuranceSystemApp:
             else:
                 self.cursor.execute(f"EXEC {sp_name}")
             
-            if self.cursor.description:  # If there are results to fetch
+            if self.cursor.description:
                 return self.cursor.fetchall()
             else:
-                self.conn.commit()
-                return None
+                self.conn.commit()  # Явний коміт змін
+                return True  # Повертаємо успішність виконання
         except Exception as e:
             self.conn.rollback()
             messagebox.showerror("Database Error", f"Error executing stored procedure {sp_name}:\n{str(e)}")
-            return None
+            return False
     
     # Client Tab Methods
     def create_client_tab(self):
@@ -274,6 +274,13 @@ class InsuranceSystemApp:
         params = (client_id, name, address, phone, email, passport)
         self.execute_sp("sp_UpdateClient", params)
         self.refresh_clients()
+
+        result = self.execute_sp("sp_UpdateClient", params)
+        if result:
+            messagebox.showinfo("Success", "Client updated successfully")
+            self.refresh_clients()
+        else:
+            messagebox.showerror("Error", "Failed to update client")
     
     def delete_client(self):
         if self.user_role != "Admin":
