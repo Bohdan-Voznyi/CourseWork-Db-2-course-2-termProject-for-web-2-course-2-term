@@ -123,7 +123,7 @@ go
 
 insert into Users(Id,Username,Roleuser)
 values 
-('1','sa','Admin'),
-('2','Admin','Admin'),
+('1','sa','AdminInsurance'),
+('2','AdminInsurance','AdminInsurance'),
 ('3','worker','worker')
 go

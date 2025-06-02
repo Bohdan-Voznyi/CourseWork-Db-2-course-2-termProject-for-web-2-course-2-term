@@ -119,7 +119,7 @@ class InsuranceSystemApp:
         self.notebook.pack(fill=tk.BOTH, expand=True)
         
         # Create tabs based on user role
-        if self.user_role == "Admin":
+        if self.user_role == "AdminInsurance":
             self.create_client_tab()
             self.create_employee_tab()
             self.create_vehicle_tab()
@@ -230,7 +230,7 @@ class InsuranceSystemApp:
         self.refresh_clients()
     
     def add_client(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add clients")
             return
             
@@ -251,7 +251,7 @@ class InsuranceSystemApp:
         self.clear_client_form()
     
     def update_client(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update clients")
             return
             
@@ -283,7 +283,7 @@ class InsuranceSystemApp:
             messagebox.showerror("Error", "Failed to update client")
     
     def delete_client(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete clients")
             return
             
@@ -394,7 +394,7 @@ class InsuranceSystemApp:
         self.refresh_employees()
     
     def add_employee(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add employees")
             return
             
@@ -414,7 +414,7 @@ class InsuranceSystemApp:
         self.clear_employee_form()
     
     def update_employee(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update employees")
             return
             
@@ -438,7 +438,7 @@ class InsuranceSystemApp:
         self.refresh_employees()
     
     def delete_employee(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete employees")
             return
             
@@ -563,7 +563,7 @@ class InsuranceSystemApp:
             self.owner_combobox['values'] = client_names
     
     def add_vehicle(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add vehicles")
             return
             
@@ -594,7 +594,7 @@ class InsuranceSystemApp:
         self.clear_vehicle_form()
     
     def update_vehicle(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update vehicles")
             return
             
@@ -629,7 +629,7 @@ class InsuranceSystemApp:
         self.refresh_vehicles()
     
     def delete_vehicle(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete vehicles")
             return
             
@@ -791,7 +791,7 @@ class InsuranceSystemApp:
             self.policy_employee_combobox['values'] = employee_names
     
     def add_policy(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add policies")
             return
             
@@ -837,7 +837,7 @@ class InsuranceSystemApp:
         self.clear_policy_form()
     
     def update_policy(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update policies")
             return
             
@@ -887,7 +887,7 @@ class InsuranceSystemApp:
         self.refresh_policies()
     
     def delete_policy(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete policies")
             return
             
@@ -1021,7 +1021,7 @@ class InsuranceSystemApp:
             self.claim_policy_combobox['values'] = policy_numbers
     
     def add_claim(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add claims")
             return
             
@@ -1058,7 +1058,7 @@ class InsuranceSystemApp:
         self.clear_claim_form()
     
     def update_claim(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update claims")
             return
             
@@ -1099,7 +1099,7 @@ class InsuranceSystemApp:
         self.refresh_claims()
     
     def delete_claim(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete claims")
             return
             
@@ -1222,7 +1222,7 @@ class InsuranceSystemApp:
             self.payment_claim_combobox['values'] = claim_descriptions
     
     def add_payment(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can add payments")
             return
             
@@ -1257,7 +1257,7 @@ class InsuranceSystemApp:
         self.clear_payment_form()
     
     def update_payment(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can update payments")
             return
             
@@ -1296,7 +1296,7 @@ class InsuranceSystemApp:
         self.refresh_payments()
     
     def delete_payment(self):
-        if self.user_role != "Admin":
+        if self.user_role != "AdminInsurance":
             messagebox.showwarning("Permission Denied", "Only Admin can delete payments")
             return
             
