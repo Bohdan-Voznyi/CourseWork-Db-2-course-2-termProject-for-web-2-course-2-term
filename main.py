@@ -1332,24 +1332,82 @@ class InsuranceSystemApp:
     
     # Reports Tab Methods
     def create_reports_tab(self):
+        # Створення вкладки
         tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="Reports")
+        self.notebook.add(tab, text="📊 Reports")
         
-        report_frame = ttk.LabelFrame(tab, text="Generate Reports")
-        report_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Основний фрейм для звітів
+        report_frame = ttk.LabelFrame(tab, text="📋 Generate Reports", padding=(20, 10))
+        report_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        ttk.Button(report_frame, text="Active Policies Report", command=self.generate_active_policies_report).pack(pady=5)
-        ttk.Button(report_frame, text="Claims by Month Report", command=self.generate_claims_by_month_report).pack(pady=5)
-        ttk.Button(report_frame, text="Payments Summary Report", command=self.generate_payments_summary_report).pack(pady=5)
+        # Фрейм для кнопок звітів
+        buttons_frame = ttk.Frame(report_frame)
+        buttons_frame.pack(fill=tk.X, pady=(0, 10))
         
-        self.report_text = tk.Text(report_frame, height=20, wrap=tk.WORD)
-        self.report_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Стилізовані кнопки для звітів
+        reports = [
+            ("📑 Active Policies Report", self.generate_active_policies_report),
+            ("📈 Claims by Month Report", self.generate_claims_by_month_report),
+            ("💰 Payments Summary Report", self.generate_payments_summary_report)
+        ]
         
-        scrollbar = ttk.Scrollbar(report_frame, orient="vertical", command=self.report_text.yview)
+        for text, cmd in reports:
+            btn = ttk.Button(
+                buttons_frame, 
+                text=text, 
+                command=cmd,
+                style="Accent.TButton"  # Використовуємо стиль для акцентних кнопок
+            )
+            btn.pack(side=tk.LEFT, expand=True, padx=5, pady=5)
+        
+        # Текстова область для виведення звітів з поліпшеним оформленням
+        report_display_frame = ttk.Frame(report_frame)
+        report_display_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.report_text = tk.Text(
+            report_display_frame,
+            height=20,
+            wrap=tk.WORD,
+            font=('Segoe UI', 10),
+            padx=10,
+            pady=10,
+            bg='#f8f9fa',
+            fg='#343a40',
+            insertbackground='#343a40',
+            selectbackground='#007bff',
+            selectforeground='white'
+        )
+        self.report_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Додаємо смугу прокрутки
+        scrollbar = ttk.Scrollbar(
+            report_display_frame,
+            orient="vertical",
+            command=self.report_text.yview
+        )
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.report_text.configure(yscrollcommand=scrollbar.set)
-    
+        
+        # Додаємо контекстне меню для текстового поля
+        context_menu = tk.Menu(self.report_text, tearoff=0)
+        context_menu.add_command(label="Copy", command=lambda: self.report_text.event_generate("<<Copy>>"))
+        context_menu.add_command(label="Select All", command=lambda: self.report_text.tag_add("sel", "1.0", "end"))
+        
+        def show_context_menu(event):
+            context_menu.tk_popup(event.x_root, event.y_root)
+        
+        self.report_text.bind("<Button-3>", show_context_menu)
+        
+        # Додаткові налаштування для гарного відображення
+        self.report_text.tag_configure("header", font=('Segoe UI', 12, 'bold'), foreground='#007bff')
+        self.report_text.tag_configure("highlight", background='#fff3cd', foreground='#856404')
+        self.report_text.tag_configure("success", foreground='#28a745')
+        self.report_text.tag_configure("error", foreground='#dc3545')
+        
     def generate_active_policies_report(self):
+        self.report_text.delete(1.0, tk.END)
+        self.report_text.insert(tk.END, "ACTIVE POLICIES REPORT\n", "header")
+        self.report_text.insert(tk.END, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n", "highlight")
         result = self.execute_sp("sp_GetActivePoliciesReport")
         if result:
             self.report_text.delete(1.0, tk.END)
@@ -1377,3 +1435,6 @@ if __name__ == "__main__":
     root = tk.Tk()
     LoginWindow(root)
     root.mainloop()
+    style = ttk.Style()
+    style.configure("Accent.TButton", font=('Segoe UI', 9, 'bold'), foreground='#fff', background='#007bff')
+    style.map("Accent.TButton", background=[('active', '#0069d9')])
