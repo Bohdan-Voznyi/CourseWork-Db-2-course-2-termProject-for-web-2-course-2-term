@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 import pyodbc
 import uuid
 from datetime import datetime
+from fpdf import FPDF
 
 class LoginWindow:
     def __init__(self, root):
@@ -1334,21 +1335,22 @@ class InsuranceSystemApp:
     def create_reports_tab(self):
         # Створення вкладки
         tab = ttk.Frame(self.notebook)
-        self.notebook.add(tab, text="📊 Reports")
+        self.notebook.add(tab, text="📊 Звіти")
         
         # Основний фрейм для звітів
-        report_frame = ttk.LabelFrame(tab, text="📋 Generate Reports", padding=(20, 10))
+        report_frame = ttk.LabelFrame(tab, text="📋 Генерування звітів", padding=(20, 10))
         report_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
         # Фрейм для кнопок звітів
         buttons_frame = ttk.Frame(report_frame)
         buttons_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Стилізовані кнопки для звітів
+        # Кнопки для звітів
         reports = [
-            ("📑 Active Policies Report", self.generate_active_policies_report),
-            ("📈 Claims by Month Report", self.generate_claims_by_month_report),
-            ("💰 Payments Summary Report", self.generate_payments_summary_report)
+            ("📑 Активні поліси", self.generate_active_policies_report),
+            ("📈 Претензії по місяцях", self.generate_claims_by_month_report),
+            ("💰 Платежі", self.generate_payments_summary_report),
+            ("🖨️ Експорт в PDF", self.export_to_pdf)
         ]
         
         for text, cmd in reports:
@@ -1356,80 +1358,186 @@ class InsuranceSystemApp:
                 buttons_frame, 
                 text=text, 
                 command=cmd,
-                style="Accent.TButton"  # Використовуємо стиль для акцентних кнопок
+                style="Accent.TButton"
             )
             btn.pack(side=tk.LEFT, expand=True, padx=5, pady=5)
         
-        # Текстова область для виведення звітів з поліпшеним оформленням
-        report_display_frame = ttk.Frame(report_frame)
-        report_display_frame.pack(fill=tk.BOTH, expand=True)
-        
-        self.report_text = tk.Text(
-            report_display_frame,
-            height=20,
-            wrap=tk.WORD,
-            font=('Segoe UI', 10),
-            padx=10,
-            pady=10,
-            bg='#f8f9fa',
-            fg='#343a40',
-            insertbackground='#343a40',
-            selectbackground='#007bff',
-            selectforeground='white'
+        # Treeview для табличного відображення даних
+        self.report_tree = ttk.Treeview(
+            report_frame,
+            selectmode="extended",
+            show="headings"
         )
-        self.report_text.pack(fill=tk.BOTH, expand=True)
         
-        # Додаємо смугу прокрутки
-        scrollbar = ttk.Scrollbar(
-            report_display_frame,
-            orient="vertical",
-            command=self.report_text.yview
-        )
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.report_text.configure(yscrollcommand=scrollbar.set)
+        # Додаємо смуги прокрутки
+        vsb = ttk.Scrollbar(report_frame, orient="vertical", command=self.report_tree.yview)
+        hsb = ttk.Scrollbar(report_frame, orient="horizontal", command=self.report_tree.xview)
+        self.report_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
         
-        # Додаємо контекстне меню для текстового поля
-        context_menu = tk.Menu(self.report_text, tearoff=0)
-        context_menu.add_command(label="Copy", command=lambda: self.report_text.event_generate("<<Copy>>"))
-        context_menu.add_command(label="Select All", command=lambda: self.report_text.tag_add("sel", "1.0", "end"))
+        # Розміщення елементів
+        self.report_tree.pack(fill=tk.BOTH, expand=True)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
         
-        def show_context_menu(event):
-            context_menu.tk_popup(event.x_root, event.y_root)
-        
-        self.report_text.bind("<Button-3>", show_context_menu)
-        
-        # Додаткові налаштування для гарного відображення
-        self.report_text.tag_configure("header", font=('Segoe UI', 12, 'bold'), foreground='#007bff')
-        self.report_text.tag_configure("highlight", background='#fff3cd', foreground='#856404')
-        self.report_text.tag_configure("success", foreground='#28a745')
-        self.report_text.tag_configure("error", foreground='#dc3545')
-        
+        # Контекстне меню для копіювання даних
+        self.treeview_menu = tk.Menu(self.report_tree, tearoff=0)
+        self.treeview_menu.add_command(label="Копіювати", command=self.copy_from_treeview)
+        self.report_tree.bind("<Button-3>", self.show_treeview_menu)
+
     def generate_active_policies_report(self):
-        self.report_text.delete(1.0, tk.END)
-        self.report_text.insert(tk.END, "ACTIVE POLICIES REPORT\n", "header")
-        self.report_text.insert(tk.END, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n", "highlight")
+        self.clear_report_tree()
+        """Генерація звіту по активним полісам"""
+        # Очищаємо попередні дані
+        self.clear_report_tree()
+        
+        # Встановлюємо колонки
+        self.report_tree["columns"] = ("ID", "Клієнт", "Тип", "Сума", "Дата початку", "Дата закінчення", "Статус")
+        
+        # Налаштування колонок
+        for col in self.report_tree["columns"]:
+            self.report_tree.heading(col, text=col)
+            self.report_tree.column(col, width=100, anchor=tk.CENTER)
+        
+        # Додаємо тестові дані (замініть на реальні дані з БД)
+        sample_data = [
+            ("1001", "Іванов І.І.", "Авто", "5000", "2023-01-15", "2024-01-15", "Активний"),
+            ("1002", "Петров П.П.", "ОСАГО", "2500", "2023-03-20", "2024-03-20", "Активний"),
+            ("1003", "Сидорова С.С.", "Життя", "15000", "2022-11-10", "2023-11-10", "Неактивний")
+        ]
+        
+        for item in sample_data:
+            self.report_tree.insert("", tk.END, values=item)
+
+    def export_to_pdf(self):
+        """Експорт даних з Treeview у PDF"""
+        if not self.report_tree.get_children():
+            tk.messagebox.showwarning("Увага", "Немає даних для експорту")
+            return
+        
+        # Створюємо PDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=10)
+        
+        # Заголовок звіту
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(200, 10, txt="Звіт по активним полісам", ln=1, align='C')
+        pdf.set_font("Arial", size=10)
+        pdf.cell(200, 10, txt=f"Згенеровано: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=1)
+        pdf.ln(5)
+        
+        # Отримуємо дані з Treeview
+        columns = self.report_tree["columns"]
+        data = []
+        
+        # Заголовки колонок
+        headers = [self.report_tree.heading(col)["text"] for col in columns]
+        data.append(headers)
+        
+        # Дані з рядків
+        for child in self.report_tree.get_children():
+            data.append(self.report_tree.item(child)["values"])
+        
+        # Визначаємо ширину колонок
+        col_width = 190 / len(columns)
+        
+        # Додаємо таблицю в PDF
+        pdf.set_font("Arial", 'B', 10)
+        for row in data:
+            for item in row:
+                pdf.cell(col_width, 10, str(item), border=1)
+            pdf.ln()
+        
+        # Зберігаємо PDF
+        filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        pdf.output(filename)
+        tk.messagebox.showinfo("Успіх", f"Звіт збережено у файлі: {filename}")
+
+    def clear_report_tree(self):
+        """Очищення Treeview"""
+        self.report_tree.delete(*self.report_tree.get_children())
+        for col in self.report_tree["columns"]:
+            self.report_tree.heading(col, text="")
+            self.report_tree.column(col, width=0)
+
+    def copy_from_treeview(self):
+        """Копіювання виділених даних з Treeview"""
+        selected_items = self.report_tree.selection()
+        if not selected_items:
+            return
+        
+        # Формуємо текст для копіювання
+        copy_text = ""
+        
+        # Заголовки
+        columns = self.report_tree["columns"]
+        headers = [self.report_tree.heading(col)["text"] for col in columns]
+        copy_text += "\t".join(headers) + "\n"
+        
+        # Дані
+        for item in selected_items:
+            values = self.report_tree.item(item)["values"]
+            copy_text += "\t".join(str(v) for v in values) + "\n"
+        
+        # Копіюємо в буфер обміну
+        self.root.clipboard_clear()
+        self.root.clipboard_append(copy_text.strip())
+
+    def show_treeview_menu(self, event):
+        """Показ контекстного меню для Treeview"""
+        item = self.report_tree.identify_row(event.y)
+        if item:
+            self.report_tree.selection_set(item)
+            self.treeview_menu.post(event.x_root, event.y_root)
+
+    def generate_active_policies_report(self):
+        self.clear_report_tree()
+        
+        # Встановлення колонок
+        self.report_tree["columns"] = ("Policy ID", "Client", "Vehicle", "Premium", "Start Date", "End Date", "Status")
+        
+        for col in self.report_tree["columns"]:
+            self.report_tree.heading(col, text=col)
+            self.report_tree.column(col, width=120, anchor=tk.CENTER)
+        
+        # Отримання даних із збереженої процедури
         result = self.execute_sp("sp_GetActivePoliciesReport")
+        
         if result:
-            self.report_text.delete(1.0, tk.END)
-            self.report_text.insert(tk.END, "Active Policies Report\n\n")
             for row in result:
-                self.report_text.insert(tk.END, f"Policy: {row[0]}, Client: {row[1]}, Vehicle: {row[2]}, Premium: {row[3]}\n")
-    
+                self.report_tree.insert("", tk.END, values=row)
+
+        
     def generate_claims_by_month_report(self):
+        self.clear_report_tree()
+        
+        self.report_tree["columns"] = ("Month", "Claims Count", "Total Damage")
+        
+        for col in self.report_tree["columns"]:
+            self.report_tree.heading(col, text=col)
+            self.report_tree.column(col, width=150, anchor=tk.CENTER)
+        
         result = self.execute_sp("sp_GetClaimsByMonthReport")
+        
         if result:
-            self.report_text.delete(1.0, tk.END)
-            self.report_text.insert(tk.END, "Claims by Month Report\n\n")
             for row in result:
-                self.report_text.insert(tk.END, f"Month: {row[0]}, Claims Count: {row[1]}, Total Damage: {row[2]}\n")
-    
+                self.report_tree.insert("", tk.END, values=row)
+
     def generate_payments_summary_report(self):
+        self.clear_report_tree()
+        
+        self.report_tree["columns"] = ("Claim ID", "Payment Date", "Amount", "Method")
+        
+        for col in self.report_tree["columns"]:
+            self.report_tree.heading(col, text=col)
+            self.report_tree.column(col, width=150, anchor=tk.CENTER)
+        
         result = self.execute_sp("sp_GetPaymentsSummaryReport")
+        
         if result:
-            self.report_text.delete(1.0, tk.END)
-            self.report_text.insert(tk.END, "Payments Summary Report\n\n")
             for row in result:
-                self.report_text.insert(tk.END, f"Claim ID: {row[0]}, Payment Date: {row[1]}, Amount: {row[2]}, Method: {row[3]}\n")
+                self.report_tree.insert("", tk.END, values=row)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
